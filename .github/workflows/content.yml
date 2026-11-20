@@ -1,0 +1,111 @@
+# Runs on GitHub's free cloud computers, so your PC can be off.
+# Times are UTC (India = UTC + 5:30). GitHub may start scheduled runs 5-30 minutes late.
+name: content
+
+on:
+  schedule:
+    - cron: "30 4 * * *"    # 10:00 IST  reel + songs for the phone app
+    - cron: "0 8 * * *"     # 13:30 IST  reel + songs
+    - cron: "30 14 * * *"   # 20:00 IST  reel + songs
+    - cron: "0 4 * * *"     # 09:30 IST  news story (posted automatically)
+    - cron: "30 7 * * *"    # 13:00 IST  news story
+    - cron: "45 11 * * *"   # 17:15 IST  news story
+    - cron: "45 15 * * *"   # 21:15 IST  news story
+    - cron: "30 6 * * *"    # 12:00 IST  quote story (posted automatically)
+    - cron: "0 11 * * *"    # 16:30 IST  quote story
+    - cron: "30 16 * * *"   # 22:00 IST  quote story
+  workflow_dispatch:
+    inputs:
+      job:
+        description: What to run now
+        type: choice
+        options: [pick, quote-story, news-story]
+        default: pick
+
+permissions:
+  contents: write
+
+# one run at a time, so runs never overwrite each other's results
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide the job
+        id: job
+        run: |
+          case "${{ github.event.schedule }}" in
+            "30 4 * * *"|"0 8 * * *"|"30 14 * * *") J=pick ;;
+            "0 4 * * *"|"30 7 * * *"|"45 11 * * *"|"45 15 * * *") J=news-story ;;
+            "30 6 * * *"|"0 11 * * *"|"30 16 * * *") J=quote-story ;;
+            *) J="${{ inputs.job }}" ;;
+          esac
+          echo "name=${J:-pick}" >> "$GITHUB_OUTPUT"
+          echo "Job: ${J:-pick}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install ffmpeg, fonts and cloudflared
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-core > /dev/null
+          curl -fsSL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz | tar -xJ
+          echo "FFMPEG=$PWD/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg" >> "$GITHUB_ENV"
+          sudo curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          sudo chmod +x /usr/local/bin/cloudflared
+
+      - name: Get the website branch (state + reels)
+        run: |
+          URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$URL" gh-pages > /dev/null; then
+            git clone --depth 1 --branch gh-pages "$URL" site
+          else
+            mkdir site
+          fi
+
+      - name: Run ${{ steps.job.outputs.name }}
+        env:
+          SITE_DIR: site
+          REELS_DATA_DIR: site/data
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_HANDLE: ${{ secrets.IG_HANDLE }}
+          IG_HASHTAGS: ${{ vars.IG_HASHTAGS }}
+        run: node cloud/run.js ${{ steps.job.outputs.name }}
+
+      - name: Publish the website (one commit, no history, so it never grows)
+        if: always()
+        run: |
+          mkdir -p site/app
+          cp -r pickapp/. site/app/
+          echo '<meta http-equiv="refresh" content="0; url=app/">' > site/index.html
+          cd site
+          rm -rf .git
+          git init -q -b gh-pages
+          git config user.name "reels-bot"
+          git config user.email "reels-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "update ${{ steps.job.outputs.name }} $(date '+%F %R')"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
+
+      - name: Keep the timetable alive
+        # GitHub pauses scheduled workflows after 60 days without commits on the main branch
+        if: steps.job.outputs.name == 'pick'
+        run: |
+          LAST=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - LAST )) -gt $(( 45 * 86400 )) ]; then
+            git config user.name "reels-bot"
+            git config user.email "reels-bot@users.noreply.github.com"
+            git commit -q --allow-empty -m "keep scheduled runs active"
+            git push -q
+          fi

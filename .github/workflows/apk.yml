@@ -1,0 +1,65 @@
+# Builds the "Reels Picks" Android app and puts it on your website: https://<you>.github.io/<repo>/ReelsPicks.apk
+name: apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/apk.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          PAGES="https://${OWNER,,}.github.io/${REPO}/"
+          echo "App will use: $PAGES"
+          gradle -p android assembleDebug -PpagesUrl="$PAGES" -PversionCode="${{ github.run_number }}" --no-daemon
+
+      - name: Put the APK on the website
+        run: |
+          URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$URL" gh-pages > /dev/null; then
+            git clone --depth 1 --branch gh-pages "$URL" site
+          else
+            mkdir site
+          fi
+          cp android/app/build/outputs/apk/debug/app-debug.apk site/ReelsPicks.apk
+          mkdir -p site/app && cp -r pickapp/. site/app/
+          touch site/.nojekyll
+          echo '<meta http-equiv="refresh" content="0; url=app/">' > site/index.html
+          cd site
+          rm -rf .git
+          git init -q -b gh-pages
+          git config user.name "reels-bot"
+          git config user.email "reels-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "app build ${{ github.run_number }}"
+          git push -q -f "$URL" gh-pages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReelsPicks-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

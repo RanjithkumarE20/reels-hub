@@ -1,0 +1,17 @@
+{
+  "name": "reels-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Auto-updating reels + stories: English quotes with Tamil/Hindi/English songs, and trending news/video reels.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "ig:check": "node scripts/ig.js check",
+    "ig:test": "node scripts/ig.js test",
+    "ig:status": "node scripts/ig.js status"
+  }
+}
