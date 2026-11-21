@@ -7,10 +7,6 @@ on:
     - cron: "30 4 * * *"    # 10:00 IST  reel + songs for the phone app
     - cron: "0 8 * * *"     # 13:30 IST  reel + songs
     - cron: "30 14 * * *"   # 20:00 IST  reel + songs
-    - cron: "0 4 * * *"     # 09:30 IST  news story (posted automatically)
-    - cron: "30 7 * * *"    # 13:00 IST  news story
-    - cron: "45 11 * * *"   # 17:15 IST  news story
-    - cron: "45 15 * * *"   # 21:15 IST  news story
     - cron: "30 6 * * *"    # 12:00 IST  quote story (posted automatically)
     - cron: "0 11 * * *"    # 16:30 IST  quote story
     - cron: "30 16 * * *"   # 22:00 IST  quote story
@@ -19,7 +15,7 @@ on:
       job:
         description: What to run now
         type: choice
-        options: [pick, quote-story, news-story]
+        options: [pick, quote-story]
         default: pick
 
 permissions:
@@ -44,7 +40,6 @@ jobs:
         run: |
           case "${{ github.event.schedule }}" in
             "30 4 * * *"|"0 8 * * *"|"30 14 * * *") J=pick ;;
-            "0 4 * * *"|"30 7 * * *"|"45 11 * * *"|"45 15 * * *") J=news-story ;;
             "30 6 * * *"|"0 11 * * *"|"30 16 * * *") J=quote-story ;;
             *) J="${{ inputs.job }}" ;;
           esac

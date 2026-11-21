@@ -7,7 +7,6 @@ How it works after setup:
 | 10:00 · 13:30 · 20:00 | A new silent quote reel + 3 film songs that match the quote are ready | GitHub cloud |
 | A few minutes later | 🔔 Pop-up on your phone: "New reel ready · Song idea: …" | Reels Picks app |
 | When you're free (~1 min) | Pick a song → **Open in Instagram** → add the song → paste caption → Share or Schedule | You |
-| 09:30 · 13:00 · 17:15 · 21:15 | News story posted to Instagram | GitHub cloud, automatic |
 | 12:00 · 16:30 · 22:00 | Quote story posted to Instagram | GitHub cloud, automatic |
 
 GitHub's free scheduler can start 5–30 minutes late. Your YouTube Shorts tasks keep running on the PC as before.
@@ -115,4 +114,4 @@ If you don't post a reel within 2 hours, you get one reminder.
 ## Good to know
 - **Updating the app:** each new build may ask you to uninstall the old one first, because it's a personal app not signed with a store key. Your settings are lost; nothing else is. The song screen itself updates by itself with no reinstall.
 - **GitHub's rules:** the free cloud runners are meant for software projects. Small personal automations like this are common, but GitHub could pause the workflows. If that ever happens, the PC version still works (`IG_ENABLED=true`).
-- **Running something by hand:** GitHub → **Actions** → **content** → **Run workflow** → choose `pick`, `quote-story` or `news-story`.
+- **Running something by hand:** GitHub → **Actions** → **content** → **Run workflow** → choose `pick` or `quote-story`.
