@@ -86,6 +86,8 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           # optional: which reel styles to rotate, e.g. "art-en,photo,art-ta"
           PICK_STYLES: ${{ vars.PICK_STYLES }}
+          # optional: better background photos (free key from pexels.com/api)
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: node cloud/run.js ${{ steps.job.outputs.name }}
 
       - name: Publish the website (one commit, no history, so it never grows)

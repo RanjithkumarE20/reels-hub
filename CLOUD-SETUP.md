@@ -77,7 +77,7 @@ The cloud now posts the stories, so the PC must stop posting them, or they'd be 
 
 ## Part D (optional): hand-drawn AI pictures for the sketch-art reels (5 min, free)
 
-The reels take turns between three styles: **sketch art + English quote**, **photo + English quote** and **sketch art + Tamil quote**.
+The reels take turns between styles: **sketch art** (English or Tamil), **minimal** (moody photo + short stanza, English or Tamil) and **photo** (full-screen photo + English quote).
 Without this part, the sketch-art reels use a real photo turned into a pencil sketch. With it, each one gets a new hand-drawn illustration made for the quote (couples, mothers, friends, lighthouses and so on).
 
 1. Sign up free at https://dash.cloudflare.com/sign-up and verify your email.
@@ -95,7 +95,9 @@ Without this part, the sketch-art reels use a real photo turned into a pencil sk
 
 The free daily allowance is many times more than 3 pictures a day. If it's ever used up or fails, that reel falls back to a sketched photo.
 
-**Choosing styles:** GitHub → **Settings → Secrets and variables → Actions → Variables** tab → **New repository variable** → name `PICK_STYLES`, value e.g. `art-en,art-ta` (sketch only) or `art-en,photo,art-ta` (default).
+**Better background photos (optional, 2 min, free):** sign up at https://www.pexels.com/api/ → **Your API key** → copy it → add a GitHub secret named `PEXELS_API_KEY`. The photo and minimal reels then use Pexels photos (better quality, more people and moody scenes) instead of Wikimedia.
+
+**Choosing styles:** GitHub → **Settings → Secrets and variables → Actions → Variables** tab → **New repository variable** → name `PICK_STYLES`, value e.g. `art-en,art-ta` (sketch only) or `minimal-ta,art-ta` (Tamil only). Default: `art-en,minimal-ta,photo,art-ta,minimal-en,minimal-ta`. Styles: `art-en`, `art-ta`, `photo`, `minimal-en`, `minimal-ta`.
 
 ---
 

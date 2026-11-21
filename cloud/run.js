@@ -30,7 +30,8 @@ const MOOD_TAGS = { love: "#lovequotes #love", motivation: "#motivation #nevergi
 //   art-en = pencil-sketch picture on paper + handwritten English quote
 //   photo  = full-screen mood photo + English quote (the original style)
 //   art-ta = pencil-sketch picture on paper + Tamil quote
-const STYLES = (process.env.PICK_STYLES || "art-en,photo,art-ta").split(",").map((x) => x.trim()).filter((x) => ["art-en", "photo", "art-ta"].includes(x));
+//   minimal-ta / minimal-en = moody photo + a short quote in soft white text (Tamil / English)
+const STYLES = (process.env.PICK_STYLES || "art-en,minimal-ta,photo,art-ta,minimal-en,minimal-ta").split(",").map((x) => x.trim()).filter((x) => ["art-en", "photo", "art-ta", "minimal-ta", "minimal-en"].includes(x));
 const TA_TAGS = "#tamilquotes #tamilkavithai";
 
 function captionTemplate(q, extra = {}) {
@@ -46,7 +47,7 @@ function captionTemplate(q, extra = {}) {
 }
 
 async function makePick() {
-  const { renderQuoteVideo, renderArtVideo, videoFrame } = await import("../lib/instagram/render.js");
+  const { renderQuoteVideo, renderArtVideo, renderMinimalVideo, videoFrame } = await import("../lib/instagram/render.js");
   const { suggestFilmSongs, themeOf } = await import("../lib/filmsongs.js");
   const data = readPicks();
   const style = STYLES[(data.styleIndex || 0) % STYLES.length] || "photo";
@@ -55,7 +56,7 @@ async function makePick() {
   const handle = process.env.IG_HANDLE ? `@${process.env.IG_HANDLE.replace(/^@+/, "")}` : "";
 
   let q;
-  if (style === "art-ta") {
+  if (style.endsWith("-ta")) {
     const { tamilQuotes } = await import("../lib/tamilquotes.js");
     const recentTa = new Set(data.usedTamil || []);
     const all = tamilQuotes();
@@ -73,7 +74,9 @@ async function makePick() {
 
   const media = style === "photo"
     ? await renderQuoteVideo(q, { seconds: 20, handle, music: "none" })
-    : await renderArtVideo(q, { seconds: 20, handle });
+    : style.startsWith("minimal")
+      ? await renderMinimalVideo(q, { seconds: 20, handle })
+      : await renderArtVideo(q, { seconds: 20, handle });
   const id = `${new Date().toISOString().slice(0, 10)}-${media.name.slice(0, 8)}`;
   fs.copyFileSync(media.file, path.join(PICKS_DIR, `${id}.mp4`));
   await videoFrame(media.file, path.join(PICKS_DIR, `${id}.jpg`), style === "photo" ? 2.5 : 8);

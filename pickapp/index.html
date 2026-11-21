@@ -27,6 +27,7 @@
   .body { padding:14px; }
   .quote { font:600 17px/1.4 Georgia, serif; margin:0 0 4px; }
   .author { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .quote { white-space:pre-line; }
   .quote.ta { font:600 17px/1.6 "Noto Sans Tamil", system-ui, sans-serif; }
   .meaning { color:var(--muted); font-style:italic; font-size:14px; margin:2px 0 6px; }
   .label { font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin:14px 0 8px; }
@@ -69,7 +70,7 @@ const done = new Set(store.get("rp.done", []));
 const chosen = store.get("rp.chosen", {});
 const isDone = (id) => done.has(id) || (native && native.isDone(id));
 const LANG = { ta: "TAMIL", hi: "HINDI", en: "ENGLISH" };
-const STYLE = { "art-en": "✏️ Sketch art", "art-ta": "✏️ Sketch art · Tamil", photo: "📷 Photo" };
+const STYLE = { "art-en": "✏️ Sketch art", "art-ta": "✏️ Sketch art · Tamil", photo: "📷 Photo", "minimal-ta": "🌙 Minimal · Tamil", "minimal-en": "🌙 Minimal" };
 
 function el(tag, props = {}, ...kids) {
   const n = document.createElement(tag);
