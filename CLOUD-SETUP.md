@@ -118,7 +118,15 @@ If you don't post a reel within 2 hours, you get one reminder.
 
 ---
 
-## Part E: automatic YouTube Shorts (5 min)
+## YouTube Shorts with film songs (the button)
+
+Each reel card in Reels Picks has **▶ Open in YouTube**: the YouTube app opens with the reel loaded and the title copied.
+Tap **Add sound** (♪) → search the suggested song → choose the part → **Done** → **Next** → paste the title → **Upload Short**.
+Songs added inside the YouTube app are licensed, so they're safe for your channel.
+
+## Part E (optional, normally OFF): automatic YouTube Shorts without film songs (5 min)
+
+Only use this if you'd rather have zero work on YouTube: the reels are then posted automatically **with original music instead of film songs**. Don't use it together with the button, or each reel is posted twice.
 
 Every reel is also uploaded to your YouTube channel as a Short, with original background music and the matching song names in the description. It uses the same Google login as the PC's YouTube Shorts project, which keeps running exactly as before. Film songs can't be put in automatic uploads (copyright claims or strikes), so these use original music.
 

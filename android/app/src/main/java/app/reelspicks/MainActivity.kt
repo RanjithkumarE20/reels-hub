@@ -91,7 +91,15 @@ class MainActivity : Activity() {
 
         /** Downloads the reel, copies the caption and opens Instagram with the video ready. */
         @JavascriptInterface
-        fun shareToInstagram(videoUrl: String, caption: String) {
+        fun shareToInstagram(videoUrl: String, caption: String) =
+            shareTo(videoUrl, caption, "com.instagram.android", "Choose Reels → add the song → paste the caption")
+
+        /** Same for YouTube: opens the Shorts editor, where "Add sound" has licensed film songs. */
+        @JavascriptInterface
+        fun shareToYouTube(videoUrl: String, title: String) =
+            shareTo(videoUrl, title, "com.google.android.youtube", "Tap Add sound → search the song → paste the title → Upload")
+
+        private fun shareTo(videoUrl: String, caption: String, pkg: String, hint: String) {
             if (Uri.parse(videoUrl).host != siteHost) return
             copy(caption)
             runOnUiThread { Toast.makeText(this@MainActivity, "Preparing the reel…", Toast.LENGTH_SHORT).show() }
@@ -111,8 +119,8 @@ class MainActivity : Activity() {
                     }
                     runOnUiThread {
                         try {
-                            startActivity(Intent(send).setPackage("com.instagram.android"))
-                            Toast.makeText(this@MainActivity, "Choose Reels → add the song → paste the caption", Toast.LENGTH_LONG).show()
+                            startActivity(Intent(send).setPackage(pkg))
+                            Toast.makeText(this@MainActivity, hint, Toast.LENGTH_LONG).show()
                         } catch (e: ActivityNotFoundException) {
                             startActivity(Intent.createChooser(send, "Share reel"))
                         }

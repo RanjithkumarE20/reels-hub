@@ -44,6 +44,7 @@
   textarea { width:100%; min-height:150px; background:#0f0f15; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px; font:13px/1.45 system-ui, sans-serif; }
   .btns { display:grid; gap:8px; margin-top:12px; }
   .btn { padding:13px; border-radius:12px; border:0; font-weight:700; font-size:15px; text-align:center; text-decoration:none; color:#fff; background:var(--ring); }
+  .btn.yt { background:#ff0033; }
   .btn.ghost { background:transparent; border:1px solid var(--line); }
   .btn.okb { background:var(--ok); color:#000; }
   .steps { font-size:13px; color:var(--muted); background:#0f0f15; border-radius:10px; padding:10px 12px; margin-top:10px; }
@@ -91,10 +92,25 @@ async function copy(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }
 
+// YouTube Short title: the quote's first words + #shorts (YouTube allows 100 characters)
+function ytTitle(p) {
+  const t = p.quote.text.replace(/s+/g, " ").trim();
+  const head = t.length > 70 ? t.slice(0, t.lastIndexOf(" ", 68)) + "…" : t;
+  return p.quote.lang === "ta" ? `${head} | Tamil Quotes #shorts` : `${head} #shorts`;
+}
+async function openYouTube(p) {
+  const videoUrl = new URL("../" + p.video, location.href).href;
+  if (native && native.shareToYouTube) { native.shareToYouTube(videoUrl, ytTitle(p)); return; }
+  return shareFile(videoUrl, ytTitle(p));
+}
 async function openInstagram(p) {
   const caption = captionFor(p);
   const videoUrl = new URL("../" + p.video, location.href).href;
   if (native) { native.shareToInstagram(videoUrl, caption); return; }
+  return shareFile(videoUrl, caption);
+}
+// browser fallback (or an older app): share the file, else download it; the text is copied
+async function shareFile(videoUrl, caption) {
   await copy(caption);
   try {
     const blob = await (await fetch(videoUrl)).blob();
@@ -145,6 +161,7 @@ function card(p) {
       ta,
       el("div", { class: "btns" },
         el("button", { class: "btn", text: "📲 Open in Instagram", onclick: () => openInstagram(p) }),
+        el("button", { class: "btn yt", text: "▶ Open in YouTube", onclick: () => openYouTube(p) }),
         el("button", { class: "btn ghost", text: "📋 Copy caption", onclick: async () => toast((await copy(ta.value)) ? "Caption copied" : "Select the text and copy it") }),
         el("button", { class: doneNow ? "btn ghost" : "btn okb", text: doneNow ? "↩ Move back to To post" : "✓ I posted it", onclick: () => {
           if (doneNow) { done.delete(p.id); native && native.markUndone && native.markUndone(p.id); }
@@ -152,7 +169,9 @@ function card(p) {
           store.set("rp.done", [...done]); render();
         } })),
       el("div", { class: "steps" }, "In Instagram: ", el("b", { text: "Reel" }), " → tap ", el("b", { text: "🎵 Audio" }), " → search ", stepSong,
-        " → pick the best part → ", el("b", { text: "Lyrics" }), " (if Instagram shows it, the words play on screen) → ", el("b", { text: "Next" }), " → long-press the caption box → ", el("b", { text: "Paste" }), " → ", el("b", { text: "Share" }), " (or More options → Schedule)")));
+        " → pick the best part → ", el("b", { text: "Lyrics" }), " (if Instagram shows it, the words play on screen) → ", el("b", { text: "Next" }), " → long-press the caption box → ", el("b", { text: "Paste" }), " → ", el("b", { text: "Share" }), " (or More options → Schedule)"),
+      el("div", { class: "steps" }, "In YouTube: tap ", el("b", { text: "Add sound" }), " (♪ at the bottom) → search the same song → choose the part → ", el("b", { text: "Done" }),
+        " → ", el("b", { text: "Next" }), " → long-press the title box → ", el("b", { text: "Paste" }), " (title copied) → ", el("b", { text: "Upload Short" }))));
 }
 
 function render() {
