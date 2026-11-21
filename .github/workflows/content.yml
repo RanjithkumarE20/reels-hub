@@ -83,6 +83,11 @@ jobs:
           PICK_STYLES: ${{ vars.PICK_STYLES }}
           # optional: better background photos (free key from pexels.com/api)
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          # optional: also upload every reel to your YouTube channel as a Short (with original music)
+          YT_TOKEN_JSON: ${{ secrets.YT_TOKEN_JSON }}
+          YT_PRIVACY: ${{ vars.YT_PRIVACY }}
+          YT_MAX_PER_DAY: ${{ vars.YT_MAX_PER_DAY }}
+          YT_UPLOAD: ${{ vars.YT_UPLOAD }}
         run: node cloud/run.js ${{ steps.job.outputs.name }}
 
       - name: Publish the website (one commit, no history, so it never grows)

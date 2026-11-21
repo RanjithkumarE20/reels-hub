@@ -115,3 +115,23 @@ If you don't post a reel within 2 hours, you get one reminder.
 - **Updating the app:** each new build may ask you to uninstall the old one first, because it's a personal app not signed with a store key. Your settings are lost; nothing else is. The song screen itself updates by itself with no reinstall.
 - **GitHub's rules:** the free cloud runners are meant for software projects. Small personal automations like this are common, but GitHub could pause the workflows. If that ever happens, the PC version still works (`IG_ENABLED=true`).
 - **Running something by hand:** GitHub → **Actions** → **content** → **Run workflow** → choose `pick` or `quote-story`.
+
+---
+
+## Part E: automatic YouTube Shorts (5 min)
+
+Every reel is also uploaded to your YouTube channel as a Short, with original background music and the matching song names in the description. It uses the same Google login as the PC's YouTube Shorts project, which keeps running exactly as before. Film songs can't be put in automatic uploads (copyright claims or strikes), so these use original music.
+
+Add three GitHub secrets (repository → **Settings → Secrets and variables → Actions → New repository secret**):
+
+| Name | Value |
+|---|---|
+| `YT_TOKEN_JSON` | open `C:\Users\USER\youtube-shorts-ai\token.json` in Notepad → **Ctrl+A** → **Ctrl+C** → paste everything |
+| `CF_ACCOUNT_ID` | in `C:\Users\USER\youtube-shorts-ai\.env`, the text after `CF_ACCOUNT_ID=` |
+| `CF_API_TOKEN` | in the same file, the text after `CF_API_TOKEN=` |
+
+The Cloudflare key also turns on the hand-drawn AI pictures for the sketch reels.
+
+Optional variables (**Variables** tab): `YT_PRIVACY` = `public` (default), `unlisted` or `private`; `YT_MAX_PER_DAY` = `3` (default; YouTube allows about 6 uploads a day in total, and the kids project uses 2).
+
+To stop the YouTube uploads: delete the `YT_TOKEN_JSON` secret (or add the variable `YT_UPLOAD` = `false`).

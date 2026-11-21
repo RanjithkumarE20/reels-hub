@@ -89,8 +89,25 @@ async function makePick() {
   const id = `${new Date().toISOString().slice(0, 10)}-${media.name.slice(0, 8)}`;
   fs.copyFileSync(media.file, path.join(PICKS_DIR, `${id}.mp4`));
   await videoFrame(media.file, path.join(PICKS_DIR, `${id}.jpg`), style === "photo" ? 2.5 : 8);
-  fs.unlinkSync(media.file);
   const songs = await suggestFilmSongs(q);
+
+  // automatic YouTube Short: same reel + original music (film songs can't be uploaded automatically)
+  let youtube = "";
+  const { youtubeEnabled, uploadShort, shortText } = await import("../lib/youtube.js");
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  data.youtubeLog = (data.youtubeLog || []).filter((x) => x.day >= today);
+  if (youtubeEnabled() && data.youtubeLog.length < +(process.env.YT_MAX_PER_DAY || 3)) {
+    try {
+      const { withMusic } = await import("../lib/instagram/render.js");
+      const ytFile = await withMusic(media.file, q.mood, media.seconds || 20);
+      youtube = await uploadShort(ytFile, { ...shortText(q, songs.songs), lang: q.lang === "ta" ? "ta" : "en", ai: media.art === "ai" });
+      fs.unlinkSync(ytFile);
+      data.youtubeLog.push({ day: today, url: youtube });
+    } catch (e) {
+      log("youtube", "upload failed (the reel is still ready in the app):", e.message);
+    }
+  }
+  fs.unlinkSync(media.file);
 
   const pick = {
     id,
@@ -103,6 +120,7 @@ async function makePick() {
     quoteId: q.id,
     theme: songs.themeLabel,
     songs: songs.songs,
+    youtube,
     caption: captionTemplate(q, { credit: style === "photo" ? q.credit : media.credit, art: media.art }),
   };
   data.picks = [pick, ...data.picks].slice(0, KEEP);
