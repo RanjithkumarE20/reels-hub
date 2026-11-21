@@ -124,7 +124,7 @@ function card(p) {
       stepSong.textContent = `“${s.title}”`;
     } },
       el("img", { src: safe(s.artwork) || "data:,", alt: "" }),
-      el("div", { class: "info" }, el("b", {}, el("span", { class: `lang ${s.lang}`, text: LANG[s.lang] }), s.title), el("small", { text: [s.movie, s.artist].filter(Boolean).join(" · ") })),
+      el("div", { class: "info" }, el("b", {}, el("span", { class: `lang ${s.lang}`, text: LANG[s.lang] }), s.title), el("small", { text: [s.trending ? `🔥 Trending #${s.rank}` : "", s.movie, s.artist].filter(Boolean).join(" · ") })),
       btn);
     songsBox.append(row);
   });
@@ -139,7 +139,7 @@ function card(p) {
       p.quote.en && el("div", { class: "meaning", text: p.quote.en }),
       el("div", { class: "author", text: [p.quote.author && p.quote.author !== "Unknown" ? `— ${p.quote.author}` : "", STYLE[p.style] || ""].filter(Boolean).join("  ·  ") }),
       el("div", { class: "label", text: "1 · Pick the song" }),
-      el("div", { class: "why", text: p.songs[0].why }),
+      el("div", { class: "why", text: (p.songs.find((x) => !x.trending) || p.songs[0]).why + (p.songs.some((x) => x.trending) ? " 🔥 = in today's iTunes India charts." : "") }),
       songsBox,
       el("div", { class: "label", text: "2 · Caption (copied for you)" }),
       ta,

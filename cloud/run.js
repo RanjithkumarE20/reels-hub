@@ -57,12 +57,21 @@ async function makePick() {
 
   let q;
   if (style.endsWith("-ta")) {
-    const { tamilQuotes } = await import("../lib/tamilquotes.js");
-    const recentTa = new Set(data.usedTamil || []);
-    const all = tamilQuotes();
-    const fresh = all.filter((x) => !recentTa.has(x.id) && !used.has(x.id));
-    q = (fresh.length ? fresh : all)[Math.floor(Math.random() * (fresh.length || all.length))];
-    data.usedTamil = [...(data.usedTamil || []), q.id].slice(-Math.floor(all.length * 0.7));
+    const { tamilQuotes, kuralQuotes } = await import("../lib/tamilquotes.js");
+    const { refreshTrending, trendingThemes } = await import("../lib/trending.js");
+    await refreshTrending();
+    // short modern lines more often (they suit reels best); a Thirukkural couplet about 1 in 3
+    const own = tamilQuotes(), kural = (await kuralQuotes()).filter((k) => k.text.length <= 90);
+    const all = kural.length && Math.random() < 0.35 ? kural : own;
+    const recentTa = new Set((data.usedTamil || []).slice(-Math.floor(all.length * 0.7)));
+    let fresh = all.filter((x) => !recentTa.has(x.id) && !used.has(x.id));
+    if (!fresh.length) fresh = all;
+    // follow today's music trend: if the charts are full of love (or sad, or mass) songs, prefer that feeling
+    const hot = trendingThemes().slice(0, 2);
+    const onTrend = fresh.filter((x) => hot.includes(x.theme));
+    const from = onTrend.length && Math.random() < 0.6 ? onTrend : fresh;
+    q = from[Math.floor(Math.random() * from.length)];
+    data.usedTamil = [...(data.usedTamil || []), q.id].slice(-200);
   } else {
     await addQuotes(4).catch((e) => log("pick", "new quotes failed, using saved ones:", e.message));
     q = pickQuote();
