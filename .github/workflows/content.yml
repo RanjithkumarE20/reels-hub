@@ -81,6 +81,11 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_HANDLE: ${{ secrets.IG_HANDLE }}
           IG_HASHTAGS: ${{ vars.IG_HASHTAGS }}
+          # optional: hand-drawn AI pictures for the sketch-art reels (free Cloudflare account)
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          # optional: which reel styles to rotate, e.g. "art-en,photo,art-ta"
+          PICK_STYLES: ${{ vars.PICK_STYLES }}
         run: node cloud/run.js ${{ steps.job.outputs.name }}
 
       - name: Publish the website (one commit, no history, so it never grows)

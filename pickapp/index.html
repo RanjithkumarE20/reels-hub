@@ -27,6 +27,8 @@
   .body { padding:14px; }
   .quote { font:600 17px/1.4 Georgia, serif; margin:0 0 4px; }
   .author { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .quote.ta { font:600 17px/1.6 "Noto Sans Tamil", system-ui, sans-serif; }
+  .meaning { color:var(--muted); font-style:italic; font-size:14px; margin:2px 0 6px; }
   .label { font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin:14px 0 8px; }
   .song { display:flex; gap:10px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; cursor:pointer; }
   .song.sel { border-color:var(--accent); background:rgba(255,61,127,.08); }
@@ -67,6 +69,7 @@ const done = new Set(store.get("rp.done", []));
 const chosen = store.get("rp.chosen", {});
 const isDone = (id) => done.has(id) || (native && native.isDone(id));
 const LANG = { ta: "TAMIL", hi: "HINDI", en: "ENGLISH" };
+const STYLE = { "art-en": "✏️ Sketch art", "art-ta": "✏️ Sketch art · Tamil", photo: "📷 Photo" };
 
 function el(tag, props = {}, ...kids) {
   const n = document.createElement(tag);
@@ -131,8 +134,9 @@ function card(p) {
     el("div", { class: "meta" }, el("span", { text: `${new Date(p.createdAt).toLocaleDateString()} · ${p.slot} · ${p.theme}` }), el("span", { class: `badge${doneNow ? " done" : ""}`, text: doneNow ? "POSTED" : fresh ? "NEW" : "TO POST" })),
     el("video", { src: "../" + p.video, poster: "../" + p.thumb, controls: "", playsinline: "", preload: "none" }),
     el("div", { class: "body" },
-      el("p", { class: "quote", text: `“${p.quote.text}”` }),
-      el("div", { class: "author", text: `— ${p.quote.author}` }),
+      el("p", { class: `quote${p.quote.lang === "ta" ? " ta" : ""}`, text: p.quote.lang === "ta" ? p.quote.text : `“${p.quote.text}”` }),
+      p.quote.en && el("div", { class: "meaning", text: p.quote.en }),
+      el("div", { class: "author", text: [p.quote.author && p.quote.author !== "Unknown" ? `— ${p.quote.author}` : "", STYLE[p.style] || ""].filter(Boolean).join("  ·  ") }),
       el("div", { class: "label", text: "1 · Pick the song" }),
       el("div", { class: "why", text: p.songs[0].why }),
       songsBox,
@@ -147,7 +151,7 @@ function card(p) {
           store.set("rp.done", [...done]); render();
         } })),
       el("div", { class: "steps" }, "In Instagram: ", el("b", { text: "Reel" }), " → tap ", el("b", { text: "🎵 Audio" }), " → search ", stepSong,
-        " → pick the best part → ", el("b", { text: "Next" }), " → long-press the caption box → ", el("b", { text: "Paste" }), " → ", el("b", { text: "Share" }), " (or More options → Schedule)")));
+        " → pick the best part → ", el("b", { text: "Lyrics" }), " (if Instagram shows it, the words play on screen) → ", el("b", { text: "Next" }), " → long-press the caption box → ", el("b", { text: "Paste" }), " → ", el("b", { text: "Share" }), " (or More options → Schedule)")));
 }
 
 function render() {

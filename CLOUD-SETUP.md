@@ -75,6 +75,30 @@ The cloud now posts the stories, so the PC must stop posting them, or they'd be 
 
 ---
 
+## Part D (optional): hand-drawn AI pictures for the sketch-art reels (5 min, free)
+
+The reels take turns between three styles: **sketch art + English quote**, **photo + English quote** and **sketch art + Tamil quote**.
+Without this part, the sketch-art reels use a real photo turned into a pencil sketch. With it, each one gets a new hand-drawn illustration made for the quote (couples, mothers, friends, lighthouses and so on).
+
+1. Sign up free at https://dash.cloudflare.com/sign-up and verify your email.
+2. **Account ID:** on the dashboard home, click **⋯** next to your account name → **Copy account ID**. (It is also shown in the right column under **Workers & Pages → Overview**.)
+3. **API token:** go to https://dash.cloudflare.com/profile/api-tokens → **Create Token** → **Create Custom Token** → **Get started**.
+   - Token name: `reels-ai`
+   - Permissions: **Account** · **Workers AI** · **Read**
+   - **Continue to summary** → **Create Token** → copy it (it's shown only once).
+4. In GitHub, repository → **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Name | Value |
+|---|---|
+| `CF_ACCOUNT_ID` | the account ID |
+| `CF_API_TOKEN` | the token |
+
+The free daily allowance is many times more than 3 pictures a day. If it's ever used up or fails, that reel falls back to a sketched photo.
+
+**Choosing styles:** GitHub → **Settings → Secrets and variables → Actions → Variables** tab → **New repository variable** → name `PICK_STYLES`, value e.g. `art-en,art-ta` (sketch only) or `art-en,photo,art-ta` (default).
+
+---
+
 ## Daily use: about 1 minute per reel
 
 1. 🔔 Tap the pop-up.

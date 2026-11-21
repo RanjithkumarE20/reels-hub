@@ -25,28 +25,58 @@ const istNow = () => new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkat
 const readPicks = () => { try { return JSON.parse(fs.readFileSync(PICKS_FILE, "utf8")); } catch { return { picks: [] }; } };
 
 const MOOD_TAGS = { love: "#lovequotes #love", motivation: "#motivation #nevergiveup", success: "#success #motivation", sad: "#feelings #emotional", friendship: "#friendship #friends", hope: "#hope #inspiration", peace: "#peace #calm", life: "#lifequotes #life" };
-function captionTemplate(q) {
+
+// Reel styles, used in turn (change with the PICK_STYLES variable):
+//   art-en = pencil-sketch picture on paper + handwritten English quote
+//   photo  = full-screen mood photo + English quote (the original style)
+//   art-ta = pencil-sketch picture on paper + Tamil quote
+const STYLES = (process.env.PICK_STYLES || "art-en,photo,art-ta").split(",").map((x) => x.trim()).filter((x) => ["art-en", "photo", "art-ta"].includes(x));
+const TA_TAGS = "#tamilquotes #tamilkavithai";
+
+function captionTemplate(q, extra = {}) {
   const brand = (process.env.IG_HASHTAGS || "#englishquotes #tamilvibes #quoteoftheday").split(/\s+/).filter(Boolean);
-  const tags = [...new Set([...(MOOD_TAGS[q.mood] || MOOD_TAGS.life).split(" "), ...brand])].slice(0, +(process.env.IG_MAX_HASHTAGS || 5));
-  return [`“${q.text}”`, `— ${q.author}`, "", "🎵 {song}", q.credit ? `📷 ${q.credit}` : "", "", "Save this & share it with someone who needs it today ❤️", "", tags.join(" ")]
+  const mood = (q.lang === "ta" ? TA_TAGS : MOOD_TAGS[q.mood] || MOOD_TAGS.life).split(" ");
+  const tags = [...new Set([...mood, ...brand])].slice(0, +(process.env.IG_MAX_HASHTAGS || 5));
+  const lines = q.lang === "ta"
+    ? [q.text, `(${q.en})`, q.author ? `— ${q.author}` : ""]
+    : [`“${q.text}”`, q.author && q.author !== "Unknown" ? `— ${q.author}` : ""];
+  return [...lines, "", "🎵 {song}", extra.art === "ai" ? "🎨 AI-assisted illustration" : "", extra.credit ? `📷 ${extra.credit}${extra.art === "photo" ? " (sketch edit)" : ""}` : "", "",
+    "Save this & share it with someone who needs it today ❤️", "", tags.join(" ")]
     .filter((l, i, a) => l || a[i - 1]).join("\n");
 }
 
 async function makePick() {
-  const { renderQuoteVideo, videoFrame } = await import("../lib/instagram/render.js");
-  const { suggestFilmSongs } = await import("../lib/filmsongs.js");
-  await addQuotes(4).catch((e) => log("pick", "new quotes failed, using saved ones:", e.message));
+  const { renderQuoteVideo, renderArtVideo, videoFrame } = await import("../lib/instagram/render.js");
+  const { suggestFilmSongs, themeOf } = await import("../lib/filmsongs.js");
   const data = readPicks();
+  const style = STYLES[(data.styleIndex || 0) % STYLES.length] || "photo";
+  data.styleIndex = (data.styleIndex || 0) + 1;
   const used = new Set(data.picks.map((p) => p.quoteId));
-  let q = pickQuote();
-  for (let i = 0; q && used.has(q.id) && i < 20; i++) { markUsed(q.id, "pick-skip"); q = pickQuote(); }
-  if (!q) throw new Error("no fresh quote available");
-  markUsed(q.id, "pick");
+  const handle = process.env.IG_HANDLE ? `@${process.env.IG_HANDLE.replace(/^@+/, "")}` : "";
 
-  const media = await renderQuoteVideo(q, { seconds: 20, handle: process.env.IG_HANDLE ? `@${process.env.IG_HANDLE.replace(/^@+/, "")}` : "", music: "none" });
+  let q;
+  if (style === "art-ta") {
+    const { tamilQuotes } = await import("../lib/tamilquotes.js");
+    const recentTa = new Set(data.usedTamil || []);
+    const all = tamilQuotes();
+    const fresh = all.filter((x) => !recentTa.has(x.id) && !used.has(x.id));
+    q = (fresh.length ? fresh : all)[Math.floor(Math.random() * (fresh.length || all.length))];
+    data.usedTamil = [...(data.usedTamil || []), q.id].slice(-Math.floor(all.length * 0.7));
+  } else {
+    await addQuotes(4).catch((e) => log("pick", "new quotes failed, using saved ones:", e.message));
+    q = pickQuote();
+    for (let i = 0; q && used.has(q.id) && i < 20; i++) { markUsed(q.id, "pick-skip"); q = pickQuote(); }
+    if (!q) throw new Error("no fresh quote available");
+    markUsed(q.id, "pick");
+    q = { ...q, lang: "en", theme: themeOf(q.text, q.mood).theme };
+  }
+
+  const media = style === "photo"
+    ? await renderQuoteVideo(q, { seconds: 20, handle, music: "none" })
+    : await renderArtVideo(q, { seconds: 20, handle });
   const id = `${new Date().toISOString().slice(0, 10)}-${media.name.slice(0, 8)}`;
   fs.copyFileSync(media.file, path.join(PICKS_DIR, `${id}.mp4`));
-  await videoFrame(media.file, path.join(PICKS_DIR, `${id}.jpg`));
+  await videoFrame(media.file, path.join(PICKS_DIR, `${id}.jpg`), style === "photo" ? 2.5 : 8);
   fs.unlinkSync(media.file);
   const songs = await suggestFilmSongs(q);
 
@@ -54,13 +84,14 @@ async function makePick() {
     id,
     createdAt: Date.now(),
     slot: istNow(),
+    style,
     video: `picks/${id}.mp4`,
     thumb: `picks/${id}.jpg`,
-    quote: { id: q.id, text: q.text, author: q.author, mood: q.mood, moodLabel: q.moodLabel },
+    quote: { id: q.id, text: q.text, en: q.en || "", lang: q.lang, author: q.author, mood: q.mood, moodLabel: q.moodLabel },
     quoteId: q.id,
     theme: songs.themeLabel,
     songs: songs.songs,
-    caption: captionTemplate(q),
+    caption: captionTemplate(q, { credit: style === "photo" ? q.credit : media.credit, art: media.art }),
   };
   data.picks = [pick, ...data.picks].slice(0, KEEP);
   data.updatedAt = Date.now();
@@ -68,7 +99,7 @@ async function makePick() {
   const keep = new Set(data.picks.flatMap((p) => [path.basename(p.video), path.basename(p.thumb)]));
   for (const f of fs.readdirSync(PICKS_DIR)) if (!keep.has(f)) fs.unlinkSync(path.join(PICKS_DIR, f));
   fs.writeFileSync(PICKS_FILE, JSON.stringify(data, null, 1));
-  log("pick", `ready: "${q.text.slice(0, 50)}" -> ${songs.songs.map((s) => s.title).join(" / ")}`);
+  log("pick", `ready [${style}${media.art ? "/" + media.art : ""}]: "${q.text.slice(0, 50)}" -> ${songs.songs.map((s) => s.title).join(" / ")}`);
 }
 
 try {
