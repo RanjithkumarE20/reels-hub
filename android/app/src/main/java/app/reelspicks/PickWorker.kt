@@ -39,13 +39,26 @@ class PickWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
             val id = p.getString("id")
             val quote = p.getJSONObject("quote").optString("text")
             val songs = p.optJSONArray("songs")
-            val song = if (songs != null && songs.length() > 0) songs.getJSONObject(0).optString("title") else ""
+            val first = if (songs != null && songs.length() > 0) songs.getJSONObject(0) else null
+            // "🔥 Kesariya (trending #3)" for chart songs, plain title otherwise
+            val song = when {
+                first == null -> ""
+                first.optBoolean("trending") -> "🔥 ${first.optString("title")} (trending #${first.optInt("rank")})"
+                else -> first.optString("title")
+            }
+            val style = when (p.optString("style")) {
+                "art-en", "art-ta" -> "✏️ Sketch art"
+                "minimal-en", "minimal-ta" -> "🌙 Minimal"
+                "photo" -> "📷 Photo"
+                else -> "🎬"
+            }
+            val count = songs?.length() ?: 0
             val ctx = applicationContext
             val now = System.currentTimeMillis()
 
             if (Prefs.get(ctx, "lastNotified") != id) {
                 // a reel this phone has not been told about yet
-                Notify.show(ctx, id, "🎬 New reel ready to post", "“${quote.take(80)}”\n🎵 Song idea: $song")
+                Notify.show(ctx, id, "$style reel ready to post", "${quote.replace("\n", " ").take(90)}\n🎵 $song\n+${(count - 1).coerceAtLeast(0)} more song ideas in the app")
                 Prefs.put(ctx, "lastNotified", id)
                 Prefs.putLong(ctx, "notifiedAt", now)
                 Prefs.put(ctx, "reminded", "")
