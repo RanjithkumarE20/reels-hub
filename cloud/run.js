@@ -132,6 +132,11 @@ async function makePick() {
   log("pick", `ready [${style}${media.art ? "/" + media.art : ""}]: "${q.text.slice(0, 50)}" -> ${songs.songs.map((s) => s.title).join(" / ")}`);
 }
 
+// never hang: the media server / tunnel used for Instagram uploads would otherwise keep the run alive
+// until GitHub cancels it after 25 minutes
+const LIMIT_MIN = +(process.env.RUN_LIMIT_MIN || 12);
+setTimeout(() => { log("cloud", `${job} took longer than ${LIMIT_MIN} min, stopping`); process.exit(1); }, LIMIT_MIN * 60000).unref();
+
 try {
   if (job === "pick") await makePick();
   else if (job === "quote-story" || job === "news-story") {
@@ -143,3 +148,5 @@ try {
   log("cloud", `${job} failed:`, e.message);
   process.exitCode = 1;
 }
+// finished: close the media server, tunnel and timers
+process.exit(process.exitCode || 0);
