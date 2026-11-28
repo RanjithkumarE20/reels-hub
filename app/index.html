@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0b10" />
+<title>Reels Picks</title>
+<style>
+  :root { --bg:#0b0b10; --panel:#16161f; --line:rgba(255,255,255,.12); --text:#f5f5f7; --muted:#a7a7b3; --accent:#ff3d7f; --ok:#2ecc71;
+    --ring:linear-gradient(45deg,#f9a825,#ff3d7f 50%,#7c4dff); --ta:#ffb300; --hi:#ff7043; --en:#4fc3f7; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, "Noto Sans Tamil", "Noto Sans Devanagari", sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 0; }
+  h1 { margin:0 0 10px; font:italic 600 22px Georgia, serif; }
+  h1 span { background:var(--ring); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tabs { display:flex; gap:6px; }
+  .tabs button { flex:1; padding:9px; border:0; border-radius:10px 10px 0 0; background:transparent; color:var(--muted); font-weight:600; font-size:14px; }
+  .tabs button.on { background:var(--panel); color:var(--text); }
+  main { padding:14px 16px 60px; max-width:560px; margin:0 auto; }
+  .empty { text-align:center; color:var(--muted); padding:60px 10px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; margin-bottom:18px; overflow:hidden; }
+  .card.new { box-shadow:0 0 0 2px var(--accent); }
+  .meta { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; font-size:13px; color:var(--muted); }
+  .badge { padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; background:var(--accent); color:#fff; }
+  .badge.done { background:var(--ok); }
+  video { width:100%; aspect-ratio:9/16; max-height:62vh; background:#000; display:block; object-fit:contain; }
+  .body { padding:14px; }
+  .quote { font:600 17px/1.4 Georgia, serif; margin:0 0 4px; }
+  .author { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .quote { white-space:pre-line; }
+  .quote.ta { font:600 17px/1.6 "Noto Sans Tamil", system-ui, sans-serif; }
+  .meaning { color:var(--muted); font-style:italic; font-size:14px; margin:2px 0 6px; }
+  .label { font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin:14px 0 8px; }
+  .song { display:flex; gap:10px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; cursor:pointer; }
+  .song.sel { border-color:var(--accent); background:rgba(255,61,127,.08); }
+  .song img { width:48px; height:48px; border-radius:8px; object-fit:cover; flex:none; background:#222; }
+  .song .info { flex:1; min-width:0; }
+  .song b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .song small { display:block; color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lang { font-size:10px; font-weight:800; padding:2px 5px; border-radius:4px; color:#000; margin-right:5px; }
+  .lang.ta { background:var(--ta); } .lang.hi { background:var(--hi); } .lang.en { background:var(--en); } .lang.ins { background:#b39ddb; }
+  .play { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--text); font-size:15px; flex:none; }
+  .why { font-size:12px; color:var(--muted); margin:-2px 0 8px 2px; }
+  textarea { width:100%; min-height:150px; background:#0f0f15; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px; font:13px/1.45 system-ui, sans-serif; }
+  .btns { display:grid; gap:8px; margin-top:12px; }
+  .btn { padding:13px; border-radius:12px; border:0; font-weight:700; font-size:15px; text-align:center; text-decoration:none; color:#fff; background:var(--ring); }
+  .btn.yt { background:#ff0033; }
+  .btn.ghost { background:transparent; border:1px solid var(--line); }
+  .btn.okb { background:var(--ok); color:#000; }
+  .steps { font-size:13px; color:var(--muted); background:#0f0f15; border-radius:10px; padding:10px 12px; margin-top:10px; }
+  .steps b { color:var(--text); }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:#000; padding:10px 16px; border-radius:999px; font-weight:600; opacity:0; transition:.3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reels <span>Picks</span></h1>
+  <div class="tabs"><button class="on" data-tab="todo">To post</button><button data-tab="done">Posted</button></div>
+</header>
+<main id="list"><div class="empty">Loading today's reels…</div></main>
+<div class="toast" id="toast"></div>
+<audio id="audio"></audio>
+<script>
+const native = window.ReelsPicks; // present inside the Android app
+const $ = (s, r = document) => r.querySelector(s);
+const audio = $("#audio");
+let tab = "todo", picks = [];
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const done = new Set(store.get("rp.done", []));
+const chosen = store.get("rp.chosen", {});
+const isDone = (id) => done.has(id) || (native && native.isDone(id));
+const LANG = { ta: "TAMIL", hi: "HINDI", en: "ENGLISH" };
+const STYLE = { "art-en": "✏️ Sketch art", "art-ta": "✏️ Sketch art · Tamil", photo: "📷 Photo", "minimal-ta": "🌙 Minimal · Tamil", "minimal-en": "🌙 Minimal" };
+
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) n.append(c instanceof Node ? c : document.createTextNode(c));
+  return n;
+}
+const safe = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : "");
+function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2600); }
+const songLine = (s) => `${s.title}${s.movie ? ` – ${s.movie}` : ""} (${s.artist})`;
+const captionFor = (p) => p.caption.replace("{song}", chosen[p.id] != null ? songLine(p.songs[chosen[p.id]]) : songLine(p.songs[0]));
+async function copy(text) {
+  if (native) { native.copy(text); return true; }
+  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+}
+
+// YouTube Short title: the quote's first words + #shorts (YouTube allows 100 characters)
+function ytTitle(p) {
+  const t = p.quote.text.replace(/s+/g, " ").trim();
+  const head = t.length > 70 ? t.slice(0, t.lastIndexOf(" ", 68)) + "…" : t;
+  return p.quote.lang === "ta" ? `${head} | Tamil Quotes #shorts` : `${head} #shorts`;
+}
+async function openYouTube(p) {
+  const videoUrl = new URL("../" + p.video, location.href).href;
+  if (native && native.shareToYouTube) { native.shareToYouTube(videoUrl, ytTitle(p)); return; }
+  return shareFile(videoUrl, ytTitle(p));
+}
+async function openInstagram(p) {
+  const caption = captionFor(p);
+  const videoUrl = new URL("../" + p.video, location.href).href;
+  if (native) { native.shareToInstagram(videoUrl, caption); return; }
+  return shareFile(videoUrl, caption);
+}
+// browser fallback (or an older app): share the file, else download it; the text is copied
+async function shareFile(videoUrl, caption) {
+  await copy(caption);
+  try {
+    const blob = await (await fetch(videoUrl)).blob();
+    const file = new File([blob], "reel.mp4", { type: "video/mp4" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+  } catch {}
+  const a = el("a", { href: videoUrl, download: "reel.mp4" }); a.click();
+  toast("Video downloaded. Caption copied.");
+}
+
+function card(p) {
+  const sel = chosen[p.id] ?? 0;
+  const ta = el("textarea", { readonly: "" }); ta.value = captionFor(p);
+  const songsBox = el("div");
+  p.songs.forEach((s, i) => {
+    const btn = el("button", { class: "play", text: "▶", "aria-label": "Preview", onclick: (e) => {
+      e.stopPropagation();
+      if (!s.preview) return toast("No preview for this one. Search it in Instagram.");
+      if (audio.src === s.preview && !audio.paused) { audio.pause(); btn.textContent = "▶"; return; }
+      document.querySelectorAll(".play").forEach((b) => (b.textContent = "▶"));
+      audio.src = s.preview; audio.play(); btn.textContent = "❚❚";
+    } });
+    const row = el("div", { class: `song${i === sel ? " sel" : ""}`, onclick: () => {
+      chosen[p.id] = i; store.set("rp.chosen", chosen);
+      songsBox.querySelectorAll(".song").forEach((r, j) => r.classList.toggle("sel", j === i));
+      ta.value = captionFor(p);
+      stepSong.textContent = `“${s.title}”`;
+    } },
+      el("img", { src: safe(s.artwork) || "data:,", alt: "" }),
+      el("div", { class: "info" }, el("b", {}, el("span", { class: `lang ${s.kind === "instrumental" ? "ins" : s.lang}`, text: s.kind === "instrumental" ? "🎻 INSTRUMENTAL" : LANG[s.lang] }), s.title), el("small", { text: [s.trending ? `🔥 Trending #${s.rank}` : "", s.movie, s.artist].filter(Boolean).join(" · ") })),
+      btn);
+    songsBox.append(row);
+  });
+  const stepSong = el("b", { text: `“${p.songs[sel].title}”` });
+  const doneNow = isDone(p.id);
+  const fresh = Date.now() - p.createdAt < 3 * 3600e3 && !doneNow;
+  return el("article", { class: `card${fresh ? " new" : ""}`, id: p.id },
+    el("div", { class: "meta" }, el("span", { text: `${new Date(p.createdAt).toLocaleDateString()} · ${p.slot} · ${p.theme}` }), el("span", { class: `badge${doneNow ? " done" : ""}`, text: doneNow ? "POSTED" : fresh ? "NEW" : "TO POST" })),
+    el("video", { src: "../" + p.video, poster: "../" + p.thumb, controls: "", playsinline: "", preload: "none" }),
+    el("div", { class: "body" },
+      el("p", { class: `quote${p.quote.lang === "ta" ? " ta" : ""}`, text: p.quote.lang === "ta" ? p.quote.text : `“${p.quote.text}”` }),
+      p.quote.en && el("div", { class: "meaning", text: p.quote.en }),
+      el("div", { class: "author", text: [p.quote.author && p.quote.author !== "Unknown" ? `— ${p.quote.author}` : "", STYLE[p.style] || ""].filter(Boolean).join("  ·  ") }),
+      el("div", { class: "label", text: "1 · Pick the song" }),
+      el("div", { class: "why", text: (p.songs.find((x) => !x.trending) || p.songs[0]).why + (p.songs.some((x) => x.trending) ? " 🔥 = in today's iTunes India charts." : "") }),
+      songsBox,
+      el("div", { class: "label", text: "2 · Caption (copied for you)" }),
+      ta,
+      el("div", { class: "btns" },
+        el("button", { class: "btn", text: "📲 Open in Instagram", onclick: () => openInstagram(p) }),
+        el("button", { class: "btn yt", text: "▶ Open in YouTube", onclick: () => openYouTube(p) }),
+        el("button", { class: "btn ghost", text: "📋 Copy caption", onclick: async () => toast((await copy(ta.value)) ? "Caption copied" : "Select the text and copy it") }),
+        el("button", { class: doneNow ? "btn ghost" : "btn okb", text: doneNow ? "↩ Move back to To post" : "✓ I posted it", onclick: () => {
+          if (doneNow) { done.delete(p.id); native && native.markUndone && native.markUndone(p.id); }
+          else { done.add(p.id); native && native.markDone(p.id); }
+          store.set("rp.done", [...done]); render();
+        } })),
+      el("div", { class: "steps" }, "In Instagram: ", el("b", { text: "Reel" }), " → tap ", el("b", { text: "🎵 Audio" }), " → search ", stepSong,
+        " → pick the best part → ", el("b", { text: "Lyrics" }), " (if Instagram shows it, the words play on screen) → ", el("b", { text: "Next" }), " → long-press the caption box → ", el("b", { text: "Paste" }), " → ", el("b", { text: "Share" }), " (or More options → Schedule)"),
+      el("div", { class: "steps" }, "In YouTube: tap ", el("b", { text: "Add sound" }), " (♪ at the bottom) → search the same song → choose the part → ", el("b", { text: "Done" }),
+        " → ", el("b", { text: "Next" }), " → long-press the title box → ", el("b", { text: "Paste" }), " (title copied) → ", el("b", { text: "Upload Short" }))));
+}
+
+function render() {
+  const list = $("#list");
+  const shown = picks.filter((p) => (tab === "done") === !!isDone(p.id));
+  list.replaceChildren(...(shown.length ? shown.map(card) : [el("div", { class: "empty", text: tab === "done" ? "Nothing posted yet." : "All caught up 🎉 New reels arrive at 10:00, 13:30 and 20:00." })]));
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+}
+async function load() {
+  try {
+    const r = await fetch(`../picks.json?t=${Date.now()}`, { cache: "no-store" });
+    picks = (await r.json()).picks || [];
+  } catch { $("#list").replaceChildren(el("div", { class: "empty", text: "Couldn't load reels. Check your internet and pull to refresh." })); return; }
+  render();
+}
+document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
+  tab = b.dataset.tab; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b)); render();
+}));
+window.addEventListener("hashchange", load);
+document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && load());
+load();
+</script>
+</body>
+</html>
